@@ -56,6 +56,36 @@ fun Application.configureRouting() {
                     "No user found!"
             )
         }
+        put(ROUTE_POST_NOTE) {
+            val userID = call.request.queryParameters[USER_ID] ?: EMPTY
+            val note = call.receive<Note>()
+
+            call.respond(
+                if (userID == USER_1) {
+                    dataList.firstOrNull { it.id == note.id }?.let {
+                        val index = dataList.indexOf(it)
+                        dataList[index] = note
+                        println("Post updated: $note")
+                    }
+                    note
+                } else
+                    "No user found!"
+            )
+        }
+        delete(ROUTE_POST_NOTE) {
+            val userID = call.request.queryParameters[USER_ID] ?: EMPTY
+            val note = call.receive<Note>()
+
+            call.respond(
+                if (userID == USER_1) {
+                    dataList.remove(note)
+                    println("Note deleted: $note")
+                    true
+                } else
+                    false
+
+            )
+        }
     }
 }
 
