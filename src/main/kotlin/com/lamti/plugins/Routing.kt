@@ -1,5 +1,6 @@
 package com.lamti.plugins
 
+import com.lamti.Repository
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
@@ -14,17 +15,7 @@ private const val ROUTE_POST_NOTE = "/postNote"
 private const val WELCOME_TO_LEVEL_UP = "Welcome, to LevelUp API!\n\nRoutes:\n1. /notes\n2. /postNote"
 const val EMPTY = ""
 
-private const val USER_1 = "user1"
-private val dataList = MutableList(30) {
-    Note(
-        id = it + 1,
-        title = "Note ${it + 1}",
-        text = "Note ${it + 1} text",
-        completed = (it + 1).rem(2) == 0
-    )
-}
-
-fun Application.configureRouting() {
+fun Application.configureRouting(repository: Repository = Repository()) {
     install(StatusPages) {
         exception<AuthenticationException> { call, _ ->
             call.respond(HttpStatusCode.Unauthorized)
@@ -40,51 +31,26 @@ fun Application.configureRouting() {
         }
         get(ROUTE_NOTES) {
             val userID = call.request.queryParameters[USER_ID] ?: EMPTY
-            call.respond(if (userID == USER_1) dataList else "No user found!")
+            val response = repository.getNotes(userID)
+            call.respond(response)
         }
         post(ROUTE_POST_NOTE) {
             val userID = call.request.queryParameters[USER_ID] ?: EMPTY
             val note = call.receive<Note>()
-
-            call.respond(
-                if (userID == USER_1) {
-                    val newNote = note.copy(id = dataList.size + 1)
-                    dataList.add(newNote)
-                    println("New post added: $newNote")
-                    newNote
-                } else
-                    "No user found!"
-            )
+            val response = repository.addNote(userID, note)
+            call.respond(response)
         }
         put(ROUTE_POST_NOTE) {
             val userID = call.request.queryParameters[USER_ID] ?: EMPTY
             val note = call.receive<Note>()
-
-            call.respond(
-                if (userID == USER_1) {
-                    dataList.firstOrNull { it.id == note.id }?.let {
-                        val index = dataList.indexOf(it)
-                        dataList[index] = note
-                        println("Post updated: $note")
-                    }
-                    note
-                } else
-                    "No user found!"
-            )
+            val response = repository.updateNote(userID, note)
+            call.respond(response)
         }
         delete(ROUTE_POST_NOTE) {
             val userID = call.request.queryParameters[USER_ID] ?: EMPTY
             val note = call.receive<Note>()
-
-            call.respond(
-                if (userID == USER_1) {
-                    dataList.remove(note)
-                    println("Note deleted: $note")
-                    true
-                } else
-                    false
-
-            )
+            val response = repository.deleteNote(userID, note)
+            call.respond(response)
         }
     }
 }
